@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriLens - Quiz</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="icon" sizes="32x32" href="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237">
+</head>
+<body>
+    <header class="site-header">
+        <img id="image" src="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237" alt="logo" width="20" height="20">
+        <div id="product">VeriLens</div>
+        <div id="nav">
+            <a href="../index.html"><img src="../resources/home.png" alt="home" width="30" height="30"></a>
+        </div>
+    </header>
+
+    <main>
+        <h1>Select an image from each set that you think is a deepfake.</h1>
+        <p class="muted">Answer all the questions before submitting.</p>
+        <div id="questions"></div>
+        <p class="err" id="quiz-error"></p>
+        <button id="submit-button">Submit</button>
+    </main>
+
+    <footer class="site-footer">
+        <p>Powered by <a href="https://aiornot.com" target="_blank" rel="noopener" class="footer-link">aiornot.com</a></p>
+    </footer>
+
+    <script src="../quiz-data.js"></script>
+    <script src="../script.js"></script>
+</body>
+</html>

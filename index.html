@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriLens</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" sizes="32x32" href="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237">
+</head>
+<body>
+    <!--Header, top part-->
+    <header class="site-header">
+        <img id="image" src="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237" alt="logo" width="20" height="20">
+        <div id="product">VeriLens</div>
+        <div id="nav">
+            <a href="index.html"><img src="resources/home.png" alt="home" width="30" height="30"></a>
+        </div>
+    </header>
+
+    <main class="home-main">
+        <section class="upload-layout">
+            <div id="push" class="intro-space">
+                <h1>Upload an Image</h1>
+                <h2 id="cool">We'll check if it's a deepfake for you.</h2>
+                <h4 id="change">Gives results based on the likelihood of it being generated.</h4>
+            </div>
+            <div class="upload-content">
+
+                <input type="file" id="file-input" hidden
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff">
+
+                <div id="dropzone" class="dropzone" tabindex="0" role="button">
+                    <p class="dropzone-title">Upload an Image or Drag & Drop</p>
+                    <p class="muted small">JPEG, PNG, WEBP, HEIC, HEIF, TIFF Limited to 10MB</p>
+                </div>
+                <p class="err" id="upload-error"></p>
+
+                <div id="analysis" class="analysis" hidden>
+                    <img id="preview" alt="Uploaded Image">
+                    <div id="analysis-body"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="quiz-section">
+            <h2>Test yourself</h2>
+            <p class="muted">Measure your ability, get results.</p>
+            
+            <label for="exp">How familiar are you with deepfakes?</label>
+            <select id="exp">
+                <option value="">Select an option</option>
+                <option>Unfamiliar</option>
+                <option>Familiar</option>
+                <option>Somewhat familiar</option>
+                <option>Very familiar</option>
+            </select>
+            <p class="err" id="form-error"></p>
+            <button id="start-button">Take the test</button>
+        </section>
+    </main>
+
+    <!--Footer-->
+    <footer class="site-footer">
+        <p>Powered by <a href="aiornot.com" target="_blank" rel="noopener" class="footer-link">aiornot.com</a></p>
+    </footer>
+
+    <!--Scripts below, required to be in order-->
+    <script src="quiz-data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

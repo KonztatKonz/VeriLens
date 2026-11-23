@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriLens - Results</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="icon" sizes="32x32" href="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237">
+</head>
+<body>
+    <header class="site-header">
+        <img id="image" src="https://static.wikia.nocookie.net/scp-db/images/5/54/Critical.png/revision/latest?cb=20220821064237" alt="logo" width="20" height="20">
+        <div id="product">VeriLens</div>
+        <div id="nav">
+            <a href="../index.html"><img src="../resources/home.png" alt="home" width="30" height="30"></a>
+        </div>
+    </header>
+
+    <main>
+        <h1>Your results</h1>
+        <p class="err" id="results-error"></p>
+        <p class="score" id="score"></p>
+
+        <h2>What you can improve on</h2>
+        <div id="advice"></div>
+
+        <h2>By item</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Your answer</th>
+                    <th>Correct answer</th>
+                    <th>What was wrong</th>
+                </tr>
+            </thead>
+            <tbody id="breakdown"></tbody>
+        </table>
+
+        <button id="home-button">Go back</button>
+    </main>
+
+    <footer class="site-footer">
+        <p>Powered by <a href="https://aiornot.com" target="_blank" rel="noopener" class="footer-link">aiornot.com</a></p>
+    </footer>
+
+    <script src="../quiz-data.js"></script>
+    <script src="../script.js"></script>
+</body>
+</html>
