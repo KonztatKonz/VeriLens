@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "deploy": "\"C:\\Program Files\\Git\\cmd\\git.exe\" push origin main"
+    "deploy": "set \"PATH=C:\\Program Files\\Git\\cmd;%PATH%\" && git push origin main"
   },
   "dependencies": {
     "dotenv": "^16.4.7"
