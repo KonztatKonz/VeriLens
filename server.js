@@ -8,14 +8,9 @@ dotenv.config();
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_REQUEST_BYTES = 11 * 1024 * 1024;
-const API_URL = "https://api.aiornot.com/v2/image/sync?excluding=nsfw";
-const API_KEYS = (process.env.API_KEYS || "")
-  .split(",")
-  .map(function (key) { return key.trim(); })
-  .filter(Boolean);
-let activeApiKeyIndex = 0;
-
-const EXHAUSTED_KEY_STATUSES = new Set([401, 402, 403]);
+const API_URL = "https://api.sightengine.com/1.0/check.json";
+const API_USER = process.env.SIGHTENGINE_API_USER || "";
+const API_SECRET = process.env.SIGHTENGINE_API_SECRET || "";
 
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -35,37 +30,24 @@ function sendJson(response, status, message) {
   response.end(JSON.stringify({ error: message }));
 }
 
-async function tryApiKeys(apiKeys, firstKeyIndex, body, contentType, fetchImpl) {
-  let upstreamResponse;
-  let keyIndex = firstKeyIndex;
-
-  for (let attempt = 0; attempt < apiKeys.length; attempt++) {
-    keyIndex = (firstKeyIndex + attempt) % apiKeys.length;
-    upstreamResponse = await fetchImpl(API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + apiKeys[keyIndex],
-        "Content-Type": contentType
-      },
-      body: body
-    });
-
-    if (!EXHAUSTED_KEY_STATUSES.has(upstreamResponse.status)) {
-      break;
-    }
-  }
-
-  return { response: upstreamResponse, keyIndex: keyIndex };
+async function requestSightengine(image, contentType, filename, apiUser, apiSecret, fetchImpl) {
+  const form = new FormData();
+  form.append("media", new Blob([image], { type: contentType }), filename);
+  form.append("models", "genai");
+  form.append("api_user", apiUser);
+  form.append("api_secret", apiSecret);
+  return fetchImpl(API_URL, { method: "POST", body: form });
 }
 
 async function proxyAnalysis(request, response) {
-  if (API_KEYS.length === 0) {
-    sendJson(response, 503, "Configure at least one API key in .env.");
+  if (!API_USER || !API_SECRET) {
+    sendJson(response, 503, "Configure SIGHTENGINE_API_USER and SIGHTENGINE_API_SECRET.");
     return;
   }
 
   const contentType = request.headers["content-type"] || "";
-  if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
+  if (!contentType.toLowerCase().startsWith("image/") &&
+      contentType.toLowerCase() !== "application/octet-stream") {
     sendJson(response, 400, "Expected an image upload.");
     return;
   }
@@ -82,14 +64,15 @@ async function proxyAnalysis(request, response) {
   }
   const body = Buffer.concat(chunks);
 
-  const firstKeyIndex = activeApiKeyIndex;
-  const result = await tryApiKeys(API_KEYS, firstKeyIndex, body, contentType, fetch);
-  const upstreamResponse = result.response;
-  activeApiKeyIndex = upstreamResponse.status === 401 ||
-    upstreamResponse.status === 402 ||
-    upstreamResponse.status === 403
-      ? (result.keyIndex + 1) % API_KEYS.length
-      : result.keyIndex;
+  const filename = path.basename(request.headers["x-file-name"] || "upload-image");
+  const upstreamResponse = await requestSightengine(
+    body,
+    contentType,
+    filename,
+    API_USER,
+    API_SECRET,
+    fetch
+  );
 
   const responseBody = Buffer.from(await upstreamResponse.arrayBuffer());
   response.writeHead(upstreamResponse.status, {
@@ -171,4 +154,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { tryApiKeys };
+module.exports = { requestSightengine };

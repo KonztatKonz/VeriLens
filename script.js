@@ -137,7 +137,7 @@ if (dropzone && fileInput) {
   };
 }
 
-// Sends the image to AI or Not and waits for the answer.
+// Sends the image to Sightengine and waits for the answer.
 // "async/await" just means: wait here until the internet request finishes.
 async function analyzeImage(file) {
   // Show the picture right away, with a waiting message
@@ -150,32 +150,52 @@ async function analyzeImage(file) {
   analysisBody.innerHTML = "";
   analysisBody.appendChild(make("p", "muted", "Analyzing your image..."));
 
-  // Package the file the way the API expects: a form with a field named "image"
-  const formData = new FormData();
-  formData.append("image", file);
-
   try {
     const response = await fetch("/api/analyze", {
       method: "POST",
-      body: formData
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "X-File-Name": encodeURIComponent(file.name)
+      },
+      body: file
     });
+    const data = await response.json();
     if (!response.ok) {
-      showAnalysisMessage(friendlyError(response.status));
+      showAnalysisMessage(friendlyError(response.status, data.error));
       return;
     }
 
-    const data = await response.json();
-    showAnalysis(data.report);
+    if (data.status !== "success") {
+      showAnalysisMessage(friendlyError(response.status, data.error));
+      return;
+    }
+    showAnalysis(data);
   } catch (error) {
     // The request never reached the server (no internet, or the browser blocked it)
-    showAnalysisMessage("We couldn't reach the local server. Make sure the Node.js server is running and try again.");
+    showAnalysisMessage("We couldn't reach the local server.");
   }
 }
 
 // Turns an error code into a sentence a person can understand.
-function friendlyError(status) {
-  if (status === 401 || status === 402 || status === 403) {
-    return "All configured API keys are invalid or out of credits. Check the API_KEYS setting in .env.";
+function friendlyError(status, apiError) {
+  if (typeof apiError === "string") {
+    return apiError;
+  }
+  if (apiError && apiError.code === 2) {
+    return "Sightengine temporarily blocked requests from this server after repeated authentication failures. Wait a few minutes before trying again.";
+  }
+  if (apiError && apiError.type === "credentials_error") {
+    return "Sightengine rejected the credentials: " +
+      (apiError.message || "verify the API user and secret in your dashboard.");
+  }
+  if (apiError && typeof apiError.message === "string") {
+    return "Sightengine: " + apiError.message;
+  }
+  if (status === 401 || status === 403) {
+    return "Sightengine rejected the configured credentials.";
+  }
+  if (status === 402) {
+    return "The Sightengine account needs more credits or an active plan.";
   }
   if (status === 422) {
     return "The service couldn't read that image. Try a different file.";
@@ -194,15 +214,33 @@ function showAnalysisMessage(message) {
 
 // Analysis
 
-// Friendly names for the AI tools the API can recognize.
+// Friendly names for generators Sightengine can recognize.
 const GENERATOR_NAMES = {
-  midjourney: "Midjourney",
-  dall_e: "DALL-E",
-  stable_diffusion: "Stable Diffusion",
-  this_person_does_not_exist: "ThisPersonDoesNotExist",
-  adobe_firefly: "Adobe Firefly",
+  cosmos: "Cosmos",
+  dalle: "DALL-E",
+  firefly: "Adobe Firefly",
   flux: "Flux",
-  four_o: "GPT-4o"
+  gan: "GAN",
+  gpt: "GPT image",
+  grok: "Grok Imagine",
+  hidream: "HiDream",
+  higgsfield: "Higgsfield",
+  hunyuan: "Hunyuan",
+  ideogram: "Ideogram",
+  imagen: "Imagen",
+  kling: "Kling",
+  krea: "Krea",
+  mai: "MAI-Image",
+  midjourney: "Midjourney",
+  qwen: "Qwen",
+  recraft: "Recraft",
+  reve: "Reve",
+  seedream: "Seedream",
+  stable_diffusion: "Stable Diffusion",
+  vidu: "Vidu",
+  wan: "Wan",
+  z_image: "Z-image",
+  other: "Other"
 };
 
 // Adds one line like "Face check: No manipulation found."
@@ -213,38 +251,45 @@ function addFinding(label, text) {
   analysisBody.appendChild(row);
 }
 
-// Finds the AI tool with the highest confidence. Returns its name, or "".
+// Finds the generator with the highest score. Returns its name, or "".
 function findLikelyGenerator(generators) {
   let bestName = "";
   let bestScore = 0;
   for (const key in generators) {
-    if (generators[key].is_detected && generators[key].confidence > bestScore) {
-      bestScore = generators[key].confidence;
+    if (typeof generators[key] === "number" && generators[key] > bestScore) {
+      bestScore = generators[key];
       bestName = GENERATOR_NAMES[key] || key.replace(/_/g, " ");
     }
   }
   return bestName;
 }
 
-function showAnalysis(report) {
+function showAnalysis(data) {
   analysisBody.innerHTML = "";
 
-  const ai = report.ai_generated;
+  const aiLikelihood = data.type && data.type.ai_generated;
+  if (typeof aiLikelihood !== "number" || !Number.isFinite(aiLikelihood) ||
+      aiLikelihood < 0 || aiLikelihood > 1) {
+    showAnalysisMessage("The detector returned an unexpected result. Please try again.");
+    return;
+  }
+
   let kind = "unknown";   // "ai", "human" or "unknown"
   let headline = "We couldn't decide";
   let explanation = "The detector wasn't able to reach a clear answer for this image.";
-  let percent = 0;
+  let verdictPercent = 0;
+  const aiPercent = Math.round(aiLikelihood * 100);
 
-  if (ai && ai.verdict === "ai") {
+  if (aiLikelihood >= 0.5) {
     kind = "ai";
-    percent = Math.round(ai.ai.confidence * 100);
+    verdictPercent = aiPercent;
     headline = "Likely AI-generated";
-    explanation = "The detector is " + percent + "% confident this image was made by an AI image generator.";
-  } else if (ai && ai.verdict === "human") {
+    explanation = "Sightengine estimates a " + aiPercent + "% likelihood that this image was generated or edited by AI.";
+  } else {
     kind = "human";
-    percent = Math.round(ai.human.confidence * 100);
-    headline = "Likely a real photo";
-    explanation = "The detector is " + percent + "% confident this image was made by a person, not by AI.";
+    verdictPercent = 100 - aiPercent;
+    headline = "Likely not AI-generated";
+    explanation = "Sightengine estimates a " + aiPercent + "% AI likelihood, so this image is more likely to be human-created.";
   }
 
   // Headline, explanation and confidence bar
@@ -254,35 +299,25 @@ function showAnalysis(report) {
   if (kind !== "unknown") {
     const bar = make("div", "bar");
     const fill = make("div", "bar-fill fill-" + kind);
-    fill.style.width = percent + "%";
+    fill.style.width = verdictPercent + "%";
     bar.appendChild(fill);
     analysisBody.appendChild(bar);
   }
 
   // Extra details
   if (kind === "ai") {
-    const generatorName = findLikelyGenerator(ai.generator || {});
+    const generatorName = findLikelyGenerator((data.type && data.type.ai_generators) || {});
     if (generatorName !== "") {
-      addFinding("Likely made with", generatorName);
+      addFinding("Top generator match", generatorName);
     }
-  }
-
-  if (report.deepfake) {
-    if (report.deepfake.is_detected) {
-      addFinding("Face check", "Signs of a manipulated or swapped face were found (" + Math.round(report.deepfake.confidence * 100) + "% confident).");
-    } else {
-      addFinding("Face check", "No signs of a manipulated or swapped face were found.");
-    }
-  } else {
-    addFinding("Face check", "Not available (no face may have been found).");
-  }
-
-  if (report.quality && report.quality.is_detected === false) {
-    addFinding("Image quality", "Low. Blur or heavy compression can make the result less reliable.");
   }
 
   analysisBody.appendChild(make("p", "muted small", "Automated detectors are good but not perfect. Treat this as a strong hint, not proof."));
 }
+
+document.addEventListener("copy", function (event) {
+  event.preventDefault();
+});
 
 
 // Quiz page

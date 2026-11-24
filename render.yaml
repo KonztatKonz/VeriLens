@@ -6,5 +6,7 @@ services:
     startCommand: npm start
     healthCheckPath: /
     envVars:
-      - key: API_KEYS
+      - key: SIGHTENGINE_API_USER
+        sync: false
+      - key: SIGHTENGINE_API_SECRET
         sync: false

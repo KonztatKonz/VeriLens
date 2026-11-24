@@ -9,9 +9,9 @@
     --muted: #afb0b1;
     --line: #181818;
     --accent: #fefefe;
-    --good: #7fd79a;
-    --bad: #ff8a80;
-    --warn: #f0c36b;
+    --good: #248e44;
+    --bad: #98423a;
+    --warn: #bf9849;
   }
 
 
@@ -21,6 +21,8 @@
    ===================================================================== */
 * {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -92,6 +94,33 @@ hr {
   justify-content: center;
   padding: 0.5rem;
   line-height: 0;
+}
+
+.home-link {
+  border-radius: 50%;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.home-link:hover {
+  background-color: #222;
+  transform: translateY(-2px);
+}
+
+.home-link:active {
+  transform: scale(0.94);
+}
+
+.home-link img {
+  transition: transform 160ms ease;
+}
+
+.home-link:hover img {
+  transform: scale(1.08);
+}
+
+.home-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .header-text { font-weight: 600; }
