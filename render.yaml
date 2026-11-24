@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: verilens
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: API_KEYS
+        sync: false
