@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "test": "node --test test-api-key-switcher.js",
     "deploy": "set \"PATH=C:\\Program Files\\Git\\cmd;%PATH%\" && git push origin main"
   },
   "dependencies": {

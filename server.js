@@ -15,6 +15,8 @@ const API_KEYS = (process.env.API_KEYS || "")
   .filter(Boolean);
 let activeApiKeyIndex = 0;
 
+const EXHAUSTED_KEY_STATUSES = new Set([401, 402, 403]);
+
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -31,6 +33,29 @@ const CONTENT_TYPES = {
 function sendJson(response, status, message) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   response.end(JSON.stringify({ error: message }));
+}
+
+async function tryApiKeys(apiKeys, firstKeyIndex, body, contentType, fetchImpl) {
+  let upstreamResponse;
+  let keyIndex = firstKeyIndex;
+
+  for (let attempt = 0; attempt < apiKeys.length; attempt++) {
+    keyIndex = (firstKeyIndex + attempt) % apiKeys.length;
+    upstreamResponse = await fetchImpl(API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + apiKeys[keyIndex],
+        "Content-Type": contentType
+      },
+      body: body
+    });
+
+    if (!EXHAUSTED_KEY_STATUSES.has(upstreamResponse.status)) {
+      break;
+    }
+  }
+
+  return { response: upstreamResponse, keyIndex: keyIndex };
 }
 
 async function proxyAnalysis(request, response) {
@@ -57,25 +82,14 @@ async function proxyAnalysis(request, response) {
   }
   const body = Buffer.concat(chunks);
 
-  let upstreamResponse;
   const firstKeyIndex = activeApiKeyIndex;
-  for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
-    const keyIndex = (firstKeyIndex + attempt) % API_KEYS.length;
-    upstreamResponse = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + API_KEYS[keyIndex],
-        "Content-Type": contentType
-      },
-      body: body
-    });
-
-    if (upstreamResponse.status !== 401 && upstreamResponse.status !== 403) {
-      activeApiKeyIndex = keyIndex;
-      break;
-    }
-    activeApiKeyIndex = (keyIndex + 1) % API_KEYS.length;
-  }
+  const result = await tryApiKeys(API_KEYS, firstKeyIndex, body, contentType, fetch);
+  const upstreamResponse = result.response;
+  activeApiKeyIndex = upstreamResponse.status === 401 ||
+    upstreamResponse.status === 402 ||
+    upstreamResponse.status === 403
+      ? (result.keyIndex + 1) % API_KEYS.length
+      : result.keyIndex;
 
   const responseBody = Buffer.from(await upstreamResponse.arrayBuffer());
   response.writeHead(upstreamResponse.status, {
@@ -151,6 +165,10 @@ const server = http.createServer(async function (request, response) {
   }
 });
 
-server.listen(PORT, function () {
-  console.log("Truth Seeker is available at http://localhost:" + PORT);
-});
+if (require.main === module) {
+  server.listen(PORT, function () {
+    console.log("Truth Seeker is available at http://localhost:" + PORT);
+  });
+}
+
+module.exports = { tryApiKeys };

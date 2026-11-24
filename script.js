@@ -174,7 +174,7 @@ async function analyzeImage(file) {
 
 // Turns an error code into a sentence a person can understand.
 function friendlyError(status) {
-  if (status === 401 || status === 403) {
+  if (status === 401 || status === 402 || status === 403) {
     return "All configured API keys are invalid or out of credits. Check the API_KEYS setting in .env.";
   }
   if (status === 422) {
